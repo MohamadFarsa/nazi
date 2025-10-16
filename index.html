@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>برای نازگل — یک لحظه</title>
+  <meta name="description" content="صفحه‌ای مفهومی و صمیمی: ماه، ستاره‌ها و پیامی که با کلیک روشن می‌شود.">
+  <style>
+    /* ===== فونت و تنظیمات پایه ===== */
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;700&display=swap');
+    :root{
+      --bg-start:#02021a;    /* شب */
+      --bg-end:#f7e6d7;      /* صبح گرمی که فضای دوستی رو نشون میده */
+      --accent:#9be7ff;      /* نور ملایم */
+      --warm:#ffd886;        /* رنگ طلایی پیام */
+      --glass: rgba(255,255,255,0.06);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:'Vazirmatn', Tahoma, Arial, sans-serif;
+      background: radial-gradient(circle at 20% 10%, rgba(255,255,255,0.02), transparent 10%), linear-gradient(180deg,var(--bg-start), #000 60%);
+      color:#fff;
+      overflow:hidden;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      transition: background 2.5s ease-in-out;
+    }
+
+    /* ===== ستاره‌ها (canvas) ===== */
+    #starfield{
+      position:fixed; inset:0; z-index:0; display:block;
+    }
+
+    /* ===== ناوبری نیمه شفاف بالا ===== */
+    header{
+      position:fixed; top:12px; left:12px; right:12px; z-index:30; display:flex; justify-content:space-between; align-items:center; pointer-events:none;
+    }
+    .brand{pointer-events:auto; background:var(--glass); padding:10px 14px; border-radius:12px; backdrop-filter: blur(6px); box-shadow: 0 6px 30px rgba(0,0,0,0.6); display:flex; gap:10px; align-items:center}
+    .brand .logo{width:36px; height:36px; border-radius:50%; background: radial-gradient(circle at 30% 30%, #fff, rgba(255,255,255,0.15)), linear-gradient(135deg,#ffe1a8,#ffd6d6); display:flex; align-items:center; justify-content:center; color:#111; font-weight:700}
+    .brand h4{margin:0; font-size:0.95rem}
+
+    .controls{pointer-events:auto; display:flex; gap:10px; align-items:center}
+    .btn{background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); padding:8px 12px; border-radius:10px; cursor:pointer; border:1px solid rgba(255,255,255,0.05); font-weight:600; color:var(--accent);}
+
+    /* ===== مرکز صفحه: ماه و پیام مفهومی ===== */
+    .stage{
+      position:relative; z-index:5; width:100%; height:100vh; display:flex; align-items:center; justify-content:center; padding:80px 24px;
+    }
+
+    .moon-wrap{
+      position:relative; width:360px; max-width:60vmin; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; cursor:pointer;
+      transition: transform .35s ease; will-change:transform;
+    }
+
+    /* خود "ماه" با گرادیان چندلایه و عمق نوری */
+    .moon {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+  overflow: visible;
+  background: url('moon.png') center/cover no-repeat,
+    radial-gradient(ellipse at 30% 25%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.06) 8%, transparent 16%),
+    radial-gradient(circle at 65% 70%, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.05) 22%, transparent 38%),
+    radial-gradient(circle at 40% 60%, rgba(255,255,255,0.06), transparent 20%),
+    conic-gradient(from 200deg at 50% 50%, #f5f5f7 0deg, #e2e0e6 60deg, #cfcbd2 120deg, #bfb8c4 200deg, #d6d6da 280deg, #f5f5f7 360deg);
+  box-shadow: 
+    0 12px 80px rgba(157, 206, 255, 0.06),
+    inset 0 -10px 30px rgba(0, 0, 0, 0.35),
+    0 30px 120px rgba(10, 20, 60, 0.65);
+  filter: drop-shadow(0 20px 60px rgba(78, 204, 163, 0.06));
+  transform-origin: center center;
+  animation: pulse 3s infinite;
+  cursor: pointer;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.moon:hover {
+  transform: scale(1.05);
+  box-shadow: 
+    0 0 120px 40px rgba(255, 255, 255, 0.8),
+    0 30px 120px rgba(10, 20, 60, 0.65);
+}
+
+
+    /* حلقه نوری ملایم دور ماه */
+    .moon::after{
+      content:''; position:absolute; inset:-18%; border-radius:50%; z-index:-1; box-shadow: 0 0 120px 30px rgba(155,231,255,0.02), 0 0 220px 40px rgba(255,255,255,0.02);
+      transition: box-shadow .5s ease;
+    }
+
+    /* نوشته مرکزی — مفهوم */
+    .moon-text{
+      position:absolute; width:85%; text-align:center; left:50%; top:50%; transform:translate(-50%,-50%);
+      font-size:1.15rem; font-weight:600; letter-spacing:0.2px; color:transparent;
+      -webkit-background-clip:text; background-clip:text; background-image:linear-gradient(90deg, #ffffff, #ffd886);
+      text-shadow: 0 6px 22px rgba(0,0,0,0.5);
+      pointer-events:none;
+      mix-blend-mode:screen;
+      animation: float 4s ease-in-out infinite;
+    }
+    @keyframes float{ 0%,100%{transform:translate(-50%,-50%) translateY(0)} 50%{transform:translate(-50%,-50%) translateY(-12px)} }
+
+    /* کارت پیام‌ها که بعد از کلیک بیرون می‌آیند */
+    .message-card{
+      position:fixed; bottom:34px; left:50%; transform:translateX(-50%); z-index:40; width:min(680px,94%); max-width:94%; pointer-events:auto; 
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)); border-radius:14px; padding:18px 22px; box-shadow: 0 18px 60px rgba(2,6,23,0.6);
+      backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.04); opacity:0; transform-origin:center bottom; transition:all .6s cubic-bezier(.2,.9,.2,1);
+    }
+    .message-card.show{opacity:1; transform: translateX(-50%) translateY(0);}
+    .message-line{font-size:1rem; margin:6px 0; color:#fff;}
+    .muted{opacity:.78; font-size:.88rem; color:rgba(255,255,255,0.85)}
+
+    /* افکت موج نوری که از ماه ساطع می‌شود */
+    .ripple{
+      position:absolute; width:100%; height:100%; border-radius:50%; left:0; top:0; pointer-events:none; z-index:3; mix-blend-mode:screen; opacity:0; transform:scale(.6);
+      transition:opacity .6s ease, transform .9s cubic-bezier(.2,.9,.2,1);
+      box-shadow: 0 0 160px 40px rgba(78,204,163,0.06), 0 0 120px 24px rgba(255,214,134,0.04);
+    }
+    .ripple.active{opacity:1; transform:scale(1.4)}
+
+    /* موبایل */
+    @media (max-width:600px){
+      .moon-wrap{width:62vmin}
+      header{top:8px; left:8px; right:8px}
+      .message-card{padding:14px}
+    }
+
+    /* تایپ و نشان دادن پیام‌ها مرحله‌ای */
+    .typing{display:inline-block; border-right:2px solid rgba(255,255,255,0.9); padding-right:6px; animation: blink 1s steps(1) infinite}
+    @keyframes blink{ 50%{border-color:transparent} }
+
+  </style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+
+<header>
+  <div class="brand">
+    <div class="logo">ن</div>
+    <h4>برای نازگل</h4>
+  </div>
+  <div class="controls">
+    <div class="btn" id="hint"> کلیک کن ☾</div>
+    <div class="btn" id="mute">🔊</div>
+  </div>
+</header>
+
+<section class="stage">
+  <div class="moon-wrap" id="moonWrap" aria-label="ماه — کلیک کن">
+    <div class="moon" id="moon"></div>
+    <div class="ripple" id="ripple"></div>
+    <div class="moon-text" id="moonText">این تویی، می‌دونستی؟</div>
+  </div>
+
+  <aside class="message-card" id="messageCard" role="status" aria-live="polite">
+    <div class="message-line muted">یک لحظه — برای تو</div>
+    <div class="message-line" id="messageLine"></div>
+    <div class="message-line muted" style="margin-top:8px; font-size:0.9rem">(برای توقف دوباره روی ماه کلیک کن)</div>
+  </aside>
+</section>
+
+<!-- موسیقی: قرار بده music.mp3 کنار فایل یا لینک بده -->
+<audio id="music" src="music.mp3" preload="auto"></audio>
+
+<script>
+/* ===== ستاره‌سازی در canvas ===== */
+const canvas = document.getElementById('starfield');
+const ctx = canvas.getContext('2d');
+let stars = [];
+function resize(){
+  canvas.width = innerWidth * devicePixelRatio;
+  canvas.height = innerHeight * devicePixelRatio;
+  canvas.style.width = innerWidth + 'px';
+  canvas.style.height = innerHeight + 'px';
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+}
+window.addEventListener('resize', ()=>{ resize(); initStars(); });
+function initStars(){
+  stars = [];
+  const count = Math.round((innerWidth*innerHeight)/20000); // چگالی ستاره
+  for(let i=0;i<count;i++){
+    stars.push({
+      x: Math.random()*innerWidth,
+      y: Math.random()*innerHeight,
+      r: Math.random()*1.6 + 0.4,
+      vx: (Math.random()-0.5)*0.02,
+      vy: (Math.random()-0.5)*0.02,
+      alpha: Math.random()*0.9 + 0.1,
+      tw: Math.random()*5 + 2
+    });
+  }
+}
+function drawStars(t){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(const s of stars){
+    ctx.beginPath();
+    ctx.globalAlpha = 0.8 * s.alpha * (0.6 + 0.4*Math.sin(t/s.tw));
+    ctx.fillStyle = '#ffffff';
+    ctx.arc(s.x, s.y, s.r,0,Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* افزایشی آرام برای حرکت ستارگان (پارالاکس) با حرکت موس */
+let pointer = {x:innerWidth/2, y:innerHeight/2};
+window.addEventListener('mousemove', e=>{ pointer.x=e.clientX; pointer.y=e.clientY; });
+
+function animateStars(t){
+  // تغییر مختصر بر اساس pointer
+  const cx = pointer.x - innerWidth/2;
+  const cy = pointer.y - innerHeight/2;
+  for(const s of stars){ s.x += cx*0.00003; s.y += cy*0.00002; if(s.x < -10) s.x = innerWidth+10; if(s.x>innerWidth+10) s.x=-10; if(s.y<-10) s.y=innerHeight+10; if(s.y>innerHeight+10) s.y=-10; }
+  drawStars(t/1000);
+  requestAnimationFrame(animateStars);
+}
+
+/* ===== منطق کلیک و روایت مفهوم ===== */
+const moonWrap = document.getElementById('moonWrap');
+const moonText = document.getElementById('moonText');
+const messageCard = document.getElementById('messageCard');
+const messageLine = document.getElementById('messageLine');
+const ripple = document.getElementById('ripple');
+const music = document.getElementById('music');
+const muteBtn = document.getElementById('mute');
+const hintBtn = document.getElementById('hint');
+let playing = false;
+
+// پیام‌های مفهومی (سینمایی، دوستانه) — ترتیبِ روایت؛ می‌تونی ویرایش کنی
+const narrative = [
+  'شب‌ها وقتی چراغ‌ها کم میشن، یه نورِ کوچیک هست که راهو نشون می‌ده...',
+  'نه ستاره‌ست، نه چراغِ خیابون؛ یه حالِ خوب که بی‌هیچ حرفی هست.',
+  'بودنِ تو مثل یک لحظه‌ی درستِ آرام روی یک شبِ طولانی‌ست.',
+  'حتی اگه فقط گوش بدی، می‌تونی صدای آرامش رو بشنوی.'
+];
+
+// تایپِ متنی با افکت
+function typeText(el, text, speed=28){
+  el.innerHTML = '';
+  let i=0; function step(){
+    if(i<=text.length){
+      el.innerHTML = '<span class="typing">'+text.slice(0,i)+'</span>';
+      i++; setTimeout(step, speed);
+    } else { el.innerHTML = text; }
+  }
+  step();
+}
+
+// timeline ساده: هر کلیک، یا پخش/توقف موزیک و نمایش پیام بعدی
+let idx = 0;
+function activateScene(){
+  // نور و پالس
+  ripple.classList.add('active');
+  moonWrap.style.transform = 'scale(1.04)';
+  setTimeout(()=>{ ripple.classList.remove('active'); moonWrap.style.transform='scale(1)'; }, 1200);
+
+  // پخش یا متوقف کردن موزیک
+  if(music.paused){
+    music.volume = 0.7; // مقدار اولیه
+    music.play().catch(()=>{/* autoplay policy: کاربر حتما کلیک کرده، ولی اگر خطا بود نادیده بگیر */});
+    playing = true; muteBtn.textContent='🔈';
+  } else { music.pause(); playing=false; muteBtn.textContent='🔊'; }
+
+  // نمایش کارت پیام و متن مرحله‌ای
+  messageCard.classList.add('show');
+  const text = narrative[idx % narrative.length];
+  typeText(messageLine, text);
+  // تغییر پس‌زمینه بر اساس مرحله برای تبدیل حس: شب -> سپیده
+  if(idx===narrative.length-1){
+    // اوج: گرما و روشناییِ صبح
+    document.body.style.background = 'linear-gradient(180deg,var(--bg-end), #fff5ec)';
+  } else {
+    document.body.style.background = 'radial-gradient(circle at 20% 10%, rgba(255,255,255,0.02), transparent 10%), linear-gradient(180deg,var(--bg-start), #000 60%)';
+  }
+
+  // متن مرکزی کمی تغییر می‌کند
+  moonText.style.opacity = 1; moonText.style.transform='translate(-50%,-60%) scale(1)';
+  setTimeout(()=>{ idx++; }, 400);
+}
+
+// دوباره کلیک کردن در فواصل سریع پیام‌ها را جلو نمی‌برد
+let debounce=false;
+moonWrap.addEventListener('click', ()=>{ if(debounce) return; debounce=true; activateScene(); setTimeout(()=>debounce=false,700); });
+
+// کنترل mute
+muteBtn.addEventListener('click', ()=>{
+  if(music.muted){ music.muted=false; muteBtn.textContent='🔈'; }
+  else { music.muted=true; muteBtn.textContent='🔇'; }
+});
+
+// hint کوتاه
+hintBtn.addEventListener('click', ()=>{ moonWrap.animate([{transform:'scale(1)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],{duration:800}); });
+
+// هنگام پخش موزیک، subtle visualizer: تغییر سایهٔ ماه بر اساس زمانِ آهنگ
+music.addEventListener('timeupdate', ()=>{
+  const p = music.currentTime / Math.max(1,music.duration);
+  const glow = 20 + Math.floor(80 * Math.abs(Math.sin(p*3.14)));
+  document.querySelector('.moon').style.boxShadow = `0 12px ${glow}px rgba(78,204,163,0.06), inset 0 -10px 30px rgba(0,0,0,0.35), 0 30px 120px rgba(10,20,60,0.65)`;
+});
+
+// وقتی موزیک مکث شد، کارت همچنان بمونه؛ اگر میخوای کارت مخفی بشه وقتی موسیقی متوقف شد میشه اینو فعال کرد
+music.addEventListener('pause', ()=>{/*noop*/});
+
+// شروع
+resize(); initStars(); requestAnimationFrame(animateStars);
+
+// قابلیت لمس برای موبایل: شروع موقع لمس اولیه
+window.addEventListener('touchstart', ()=>{/* ios user gesture satisfied */}, {passive:true});
+
+</script>
+</body>
+</html>
